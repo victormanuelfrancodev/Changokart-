@@ -16,6 +16,17 @@ Juego de carreras estilo kart en 3D retro (Mode 7) protagonizado por changuitos,
 | 7 | Aullador | Buena aceleración |
 | 8 | Macaco Japonés | Buen manejo |
 
+## Pistas
+
+| Pista | Ambiente |
+|-------|----------|
+| 🌴 Selva Plátano | Palmeras, un lago y un volcán dormido |
+| 🏖️ Playa Coco | Isla de arena rodeada de mar, sombrillas y palmeras |
+| 🌋 Volcán Mandril | Roca negra, grietas y lagos de lava, cielo de fuego |
+| 🗻 Nevado Macaco | Nieve, pinos, cerezos, toriis y aguas termales |
+
+Después de elegir changuito eliges la pista. En línea, el anfitrión elige la pista en la sala. Los récords se guardan por pista y dificultad.
+
 ## Objetos
 
 - 🍌 **Plátano** (o racimo de 3): déjalo atrás para que los demás se resbalen.
