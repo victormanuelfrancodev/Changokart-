@@ -77,6 +77,25 @@ No necesita cuentas ni Firebase. Usa WebRTC (conexión directa entre navegadores
 
 El anfitrión simula la carrera (IA, objetos y vueltas) y cada jugador maneja su kart en su propio navegador, así el control se siente inmediato. En algunas redes muy cerradas (ciertas redes de empresa o datos móviles) WebRTC puede no conectar; para esos casos habría que agregar un servidor TURN.
 
+## Estadísticas y tabla mundial (Firebase, gratis)
+
+El juego puede mandar estadísticas a Firebase para que veas cuánta gente juega, y tener una tabla mundial de récords. Si no lo configuras, todo funciona igual sin conexión.
+
+1. Entra a <https://console.firebase.google.com> con tu cuenta de Google y crea un proyecto (por ejemplo `changokart`). Activa Google Analytics cuando te lo pregunte.
+2. En el proyecto, toca el ícono **Web `</>`** para agregar una app web. Copia el objeto `firebaseConfig` que te muestra.
+3. Pega ese objeto en [`firebase-config.js`](firebase-config.js), en lugar de `null`.
+4. En el menú, abre **Firestore Database → Crear base de datos** (modo producción, cualquier región).
+5. En **Firestore → Reglas**, pega el contenido de [`firestore.rules`](firestore.rules) y toca **Publicar**.
+6. Sube los cambios a `main`. Listo.
+
+Qué vas a ver en la consola de Firebase:
+
+- **Analytics → Tiempo real / Eventos**: `juego_abierto`, `carrera_inicio`, `carrera_meta`, `record_subido`, `sala_creada`, `sala_unido` (con pista, chango, modo y lugar).
+- **Firestore → `partidas`**: cada carrera iniciada y terminada, con pista, chango, modo, dificultad, lugar, tiempo y si fue en celular o compu.
+- **Firestore → `records_<pista>_<dificultad>`**: los tiempos que la gente sube a la tabla mundial.
+
+El plan gratuito (Spark) alcanza de sobra: 50,000 lecturas y 20,000 escrituras al día.
+
 ## Cómo jugar
 
 Abre `index.html` en el navegador. Para publicarlo: en GitHub ve a **Settings → Pages**, elige la rama `main` y la carpeta raíz.

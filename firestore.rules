@@ -1,0 +1,31 @@
+rules_version = '2';
+// Reglas de Firestore para Changuito Kart.
+// Copia todo esto en: Consola de Firebase → Firestore Database → Reglas → Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Registro de partidas: el juego solo puede agregar; nadie puede leerlas ni cambiarlas desde el navegador.
+    // Tú las ves en la consola de Firebase.
+    match /partidas/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['tipo','pista','chango','modo','dificultad','lugar','tiempo','dispositivo','fecha'])
+        && request.resource.data.tipo in ['inicio', 'meta']
+        && request.resource.data.pista is string && request.resource.data.pista.size() < 20
+        && request.resource.data.fecha == request.time;
+      allow read, update, delete: if false;
+    }
+
+    // Tabla mundial: una colección por pista y dificultad (records_selva_0 … records_nevado_2).
+    // Cualquiera puede leer y agregar su tiempo; nadie puede borrar ni editar.
+    match /{col}/{id} {
+      allow read: if col.matches('records_(selva|playa|volcan|nevado)_[0-2]');
+      allow create: if col.matches('records_(selva|playa|volcan|nevado)_[0-2]')
+        && request.resource.data.keys().hasOnly(['nombre','chango','tiempo','fecha'])
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0 && request.resource.data.nombre.size() <= 16
+        && request.resource.data.chango is int && request.resource.data.chango >= 0 && request.resource.data.chango < 8
+        && request.resource.data.tiempo is number && request.resource.data.tiempo > 15 && request.resource.data.tiempo < 900
+        && request.resource.data.fecha == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

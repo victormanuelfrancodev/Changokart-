@@ -118,6 +118,12 @@ body.touch #touch.on{display:block}
 .reccard .empty{grid-column:1/-1;margin:0;font-size:14px;opacity:.75}
 #resLaps{margin:0;font-size:15px;font-variant-numeric:tabular-nums;text-align:center}
 #resLaps:empty{display:none}
+.cloudrow{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--glass);padding:10px 16px;border-radius:14px;max-width:100%}
+.cloudrow label{font-family:var(--font-display);font-size:12px;letter-spacing:.05em;color:var(--banana)}
+#playerName{font-family:var(--font-body);font-weight:700;font-size:17px;width:11em;max-width:60vw;border:3px solid var(--banana);border-radius:12px;background:var(--jungle);color:var(--cream);padding:6px 10px}
+#playerName:focus-visible{outline:3px solid var(--hibiscus);outline-offset:2px}
+#cloudMsg:empty{display:none}
+.reccard .loading{grid-column:1/-1;margin:0;font-size:14px;opacity:.75}
 .btn.small{font-size:15px;padding:9px 20px}
 .onbox{display:flex;flex-direction:column;align-items:center;gap:14px;width:min(420px,100%)}
 .join{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--glass);padding:14px 18px;border-radius:16px;width:100%;box-sizing:border-box}
@@ -277,9 +283,10 @@ body.touch .kb-only{display:none!important}
 
   <section id="records" class="menu hidden">
     <h2>Récords</h2>
+    <div class="seg" id="recScope" role="radiogroup" aria-label="Qué récords ver"></div>
     <div class="seg" id="recDiff" role="radiogroup" aria-label="Dificultad de los récords"></div>
     <div id="recGrid"></div>
-    <p class="tip">Se guardan en este dispositivo. Solo cuentan las carreras de un jugador.</p>
+    <p class="tip" id="recTip"></p>
     <button class="btn" id="recBack">Volver</button>
   </section>
 
@@ -321,6 +328,11 @@ body.touch .kb-only{display:none!important}
     <h2 id="resTitle">Resultados</h2>
     <p id="resRecord" class="tag"></p>
     <p id="resLaps"></p>
+    <div id="resCloud" class="cloudrow hidden">
+      <label for="playerName">Tu nombre en la tabla mundial</label>
+      <div class="row"><input id="playerName" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Tu nombre"><button class="btn small" id="uploadBtn" type="button">Subir tiempo</button></div>
+      <p id="cloudMsg" class="tip" role="status"></p>
+    </div>
     <ol id="resList"></ol>
     <div class="row">
       <button class="btn" id="againBtn">Revancha</button>
@@ -331,6 +343,7 @@ body.touch .kb-only{display:none!important}
   </section>
 </div>
 
+<script src="firebase-config.js"></script>
 <script>
 'use strict';
 // =================== Constantes ===================
@@ -1116,7 +1129,7 @@ async function hostRoom(){
   try{await loadPeer();}catch(e){onStatus(e.message);$('#hostBtn').disabled=false;return;}
   const code=genCode(),peer=new Peer(ROOM_PREFIX+code.toLowerCase(),PEER_OPTS);net.peer=peer;
   peer.on('open',()=>{net.role='host';net.code=code;net.course=chosenCourse;net.players=[{peer:null,char:chosen}];$('#hostBtn').disabled=false;
-    lobbyUI();onStatus('Comparte el código. Los lugares vacíos los ocupan changos de la computadora.');});
+    lobbyUI();onStatus('Comparte el código. Los lugares vacíos los ocupan changos de la computadora.');cloud.event('sala_creada');});
   peer.on('error',e=>{$('#hostBtn').disabled=false;
     if(e.type==='unavailable-id'&&!net.role){peer.destroy();hostRoom();return;}
     if(!net.role){peer.destroy();net.peer=null;onStatus(peerError(e));}});
@@ -1141,7 +1154,7 @@ async function joinRoom(){
     const conn=peer.connect(ROOM_PREFIX+code.toLowerCase(),{reliable:true,serialization:'json'});net.host=conn;
     const to=setTimeout(()=>{if(!conn.open){onStatus('No encontré esa sala. Revisa el código.');$('#joinBtn').disabled=false;peer.destroy();net.peer=null;}},10000);
     conn.on('open',()=>{clearTimeout(to);net.role='client';net.code=code;$('#joinBtn').disabled=false;conn.send({t:'hello',char:chosen});
-      lobbyUI();onStatus('¡Conectado! Esperando a que el anfitrión inicie la carrera…');});
+      lobbyUI();onStatus('¡Conectado! Esperando a que el anfitrión inicie la carrera…');cloud.event('sala_unido');});
     conn.on('data',clientMsg);
     conn.on('close',()=>{if(net.role==='client')leaveOnline('Se perdió la conexión con el anfitrión.');});
   });
@@ -1204,7 +1217,7 @@ function setupOnlineRace(){
   for(let s=0;s<8;s++){const h=slots[s],ci=h?h.char:(pool.length?pool.pop():Math.floor(Math.random()*CHARS.length));
     const k=gridKart(ci,s,!!h&&!h.peer);if(h){k.tag=h.tag;if(h.peer){k.remote=true;k.peer=h.peer;}}karts.push(k);}
   player=karts.find(k=>k.isPlayer);camK=player;cam.a=camK.a;raceT=0;resultTimer=0;phase='countdown';countT=3.6;lastCount=4;
-  net.racing=true;net.snapT=0;lastHud='';
+  net.racing=true;net.snapT=0;lastHud='';raceStarted();
   const chars=karts.map(k=>CHARS.indexOf(k.c)),tags=karts.map(k=>k.tag||'');
   karts.forEach((k,i)=>{if(k.remote)net.send(k.peer,{t:'start',chars,tags,you:i,course:net.course});});
   show(null);elMsg.style.opacity=0;
@@ -1237,7 +1250,7 @@ function clientStart(m){
   initAudio();loadCourse(clamp(m.course|0,0,COURSES.length-1));resetWorld();paused=false;
   karts=m.chars.map((ci,s)=>{const k=gridKart(clamp(ci|0,0,CHARS.length-1),s,s===m.you);k.tag=m.tags[s]||'';return k;});
   player=karts[m.you];camK=player;cam.a=player.a;raceT=0;resultTimer=0;phase='countdown';countT=3.6;lastCount=4;net.countT=3.6;
-  net.racing=true;net.sendT=0;lastHud='';
+  net.racing=true;net.sendT=0;lastHud='';raceStarted();
   show(null);elMsg.style.opacity=0;
 }
 function applySnap(m){
@@ -1327,8 +1340,39 @@ function addTop(ci,d,t,c){const a=getTop(ci,d),e={t,c,d:new Date().toLocaleDateS
 function lapKey(ci,d){return`ck-lap-${COURSES[ci].id}-${d}`;}
 function getLap(ci,d){const v=parseFloat(lsGet(lapKey(ci,d)));return v>0?v:null;}
 function faceCanvas(ci){const cv=mkCanvas(64,64);if(ci>=0&&CHARS[ci])cv.getContext('2d').drawImage(CHARS[ci].front,0,0);return cv;}
+// =================== Firebase: estadísticas y tabla mundial ===================
+// Solo se activa si firebase-config.js tiene la configuración del proyecto. Si no, todo sigue funcionando sin conexión.
+const FB_V='10.12.2',FB_SDK=['app','firestore','analytics'].map(m=>`https://www.gstatic.com/firebasejs/${FB_V}/firebase-${m}-compat.js`);
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cloud={ready:false,db:null,an:null,
+  async init(){const cfg=window.CK_FIREBASE;if(!cfg||!cfg.apiKey||!cfg.projectId)return;
+    try{for(const src of FB_SDK)await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=src;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});
+      firebase.initializeApp(cfg);this.db=firebase.firestore();
+      try{if(cfg.measurementId)this.an=firebase.analytics();}catch(e){}
+      this.ready=true;this.event('juego_abierto',{dispositivo:isTouch?'movil':'compu'});}
+    catch(e){console.warn('Firebase no se pudo cargar; el juego sigue sin conexión.',e);}},
+  event(name,params){try{if(this.an)this.an.logEvent(name,params||{});}catch(e){}},
+  log(tipo,extra){if(!this.db)return;
+    const d=Object.assign({tipo,pista:course?course.id:'',chango:player?CHARS.indexOf(player.c):-1,modo:net.role?('online-'+(net.role==='host'?'anfitrion':'invitado')):'solo',
+      dificultad:diff,lugar:0,tiempo:0,dispositivo:isTouch?'movil':'compu',fecha:firebase.firestore.FieldValue.serverTimestamp()},extra||{});
+    this.db.collection('partidas').add(d).catch(e=>console.warn('No se pudo registrar la partida',e));},
+  col(ci,d){return this.db.collection(`records_${COURSES[ci].id}_${d}`);},
+  async top(ci,d,n=10){const q=await this.col(ci,d).orderBy('tiempo').limit(n).get();return q.docs.map(x=>x.data());},
+  async submit(ci,d,nombre,chango,tiempo){await this.col(ci,d).add({nombre,chango,tiempo:Math.round(tiempo*100)/100,fecha:firebase.firestore.FieldValue.serverTimestamp()});}
+};
+function raceStarted(){cloud.event('carrera_inicio',{pista:course.id,chango:player?player.c.id:'',modo:net.role||'solo',dificultad:DIFF[diff].name});cloud.log('inicio');}
+function raceFinished(){const t=player.finished?player.finishTime:0;
+  cloud.event('carrera_meta',{pista:course.id,chango:player.c.id,lugar:player.rank,tiempo:Math.round(t),modo:net.role||'solo'});
+  cloud.log('meta',{lugar:player.rank,tiempo:Math.round(t*100)/100});}
+let recScope='mios';
 let recDiff=1;
 function showRecords(){
+  const sc=$('#recScope');sc.innerHTML='';
+  [['mios','Mis récords'],['mundial','Mundial 🌎']].forEach(([v,l])=>{const b=document.createElement('button');b.type='button';b.textContent=l;b.setAttribute('role','radio');
+    b.setAttribute('aria-checked',String(v===recScope));b.addEventListener('click',()=>{recScope=v;showRecords();});sc.appendChild(b);});
+  $('#recTip').textContent=recScope==='mios'?'Se guardan en este dispositivo. Solo cuentan las carreras de un jugador.':
+    cloud.ready?'Los mejores tiempos de todos los que juegan. Sube el tuyo al terminar una carrera.':'La tabla mundial todavía no está conectada (falta la configuración de Firebase).';
+  if(recScope==='mundial')return showWorld();
   const seg=$('#recDiff');seg.innerHTML='<span>Dificultad</span>';
   DIFF.forEach((dd,i)=>{const b=document.createElement('button');b.type='button';b.textContent=dd.name;b.setAttribute('role','radio');b.setAttribute('aria-checked',String(i===recDiff));
     b.addEventListener('click',()=>{recDiff=i;showRecords();});seg.appendChild(b);});
@@ -1341,13 +1385,29 @@ function showRecords(){
       li.children[1].appendChild(faceCanvas(r.c));ol.appendChild(li);});card.appendChild(ol);}
     grid.appendChild(card);});
   show('records');}
+function showWorld(){
+  const seg=$('#recDiff');seg.innerHTML='<span>Dificultad</span>';
+  DIFF.forEach((dd,i)=>{const b=document.createElement('button');b.type='button';b.textContent=dd.name;b.setAttribute('role','radio');b.setAttribute('aria-checked',String(i===recDiff));
+    b.addEventListener('click',()=>{recDiff=i;showRecords();});seg.appendChild(b);});
+  const grid=$('#recGrid');grid.innerHTML='';const d=recDiff;
+  COURSES.forEach((c,ci)=>{const card=document.createElement('div');card.className='reccard';
+    card.innerHTML=`<div><h3>${c.name}</h3><div class="lap">Top 10 mundial</div></div>`;card.prepend(trackPreview(ci,96,66));
+    const msg=document.createElement('p');msg.className='loading';msg.textContent=cloud.ready?'Cargando…':'Sin conexión a la tabla mundial.';card.appendChild(msg);grid.appendChild(card);
+    if(!cloud.ready)return;
+    cloud.top(ci,d).then(list=>{if(recScope!=='mundial'||recDiff!==d)return;msg.remove();
+      if(!list.length){msg.textContent='Nadie ha subido un tiempo aquí. ¡Sé el primero!';card.appendChild(msg);return;}
+      const ol=document.createElement('ol');list.forEach((r,i)=>{const li=document.createElement('li');const ch=CHARS[r.chango]?r.chango:-1;
+        li.innerHTML=`<b>${i+1}º</b><span></span><span>${esc(r.nombre||'—')} <small>${ch>=0?esc(CHARS[ch].name):''}</small></span><span>${fmt(+r.tiempo||0)}</span>`;
+        li.children[1].appendChild(faceCanvas(ch));ol.appendChild(li);});card.appendChild(ol);})
+    .catch(e=>{console.warn(e);msg.textContent='No se pudo cargar la tabla. Intenta más tarde.';});});
+  show('records');}
 function showTracks(){const box=$('#tracks');box.innerHTML='';
   COURSES.forEach((c,i)=>{const b=document.createElement('button');b.className='card tcard';b.type='button';b.id='track-'+c.id;
     const best=(getTop(i,diff)[0]||{}).t;
     b.innerHTML=`<div class="nm">${c.name}</div><div class="ds">${c.desc}</div><div class="rec">${best>0?'Récord en '+DIFF[diff].name+': '+fmt(best):'Sin récord en '+DIFF[diff].name}</div>`;
     b.prepend(trackPreview(i,160,110));b.addEventListener('click',()=>{chosenCourse=i;startRace();});box.appendChild(b);});
   show('trackSel');$('#track-'+COURSES[chosenCourse].id).focus();}
-function startRace(){initAudio();if(AC&&AC.state==='suspended')AC.resume();paused=false;lastHud='';loadCourse(chosenCourse);setupRace(chosen);show(null);elMsg.style.opacity=0;}
+function startRace(){initAudio();if(AC&&AC.state==='suspended')AC.resume();paused=false;lastHud='';loadCourse(chosenCourse);setupRace(chosen);show(null);elMsg.style.opacity=0;raceStarted();}
 function showResults(){phase='results';
   const sorted=[...karts].sort((a,b)=>a.rank-b.rank);
   $('#resTitle').textContent=player.rank===1?'¡Ganaste la copa plátano! 🏆':player.rank<=3?`¡Podio! Quedaste ${player.rank}º`:`Quedaste ${player.rank}º`;
@@ -1361,6 +1421,10 @@ function showResults(){phase='results';
       laps='Vueltas: '+L.map(t=>fmt(t)).join(' · ');
       if(!old||bl<old){lsSet(lapKey(courseIdx,diff),bl);laps+=` · <b>¡Mejor vuelta! ${fmt(bl)}</b>`;}}}
   $('#resRecord').innerHTML=rec;$('#resLaps').innerHTML=laps;
+  raceFinished();
+  const canUp=cloud.ready&&!net.role&&player.finished;$('#resCloud').classList.toggle('hidden',!canUp);
+  if(canUp){$('#playerName').value=lsGet('ck-name')||'';$('#cloudMsg').textContent='';$('#uploadBtn').disabled=false;
+    $('#uploadBtn').dataset.t=player.finishTime;$('#uploadBtn').dataset.ci=courseIdx;$('#uploadBtn').dataset.d=diff;$('#uploadBtn').dataset.ch=chosen;}
   if(player.rank<=3)spawnConfetti();
   const on=!!net.role;$('#againBtn').classList.toggle('hidden',net.role==='client');$('#changeBtn').classList.toggle('hidden',on);$('#trackBtn').classList.toggle('hidden',on);
   $('#leaveBtn').classList.toggle('hidden',!on);
@@ -1380,6 +1444,14 @@ $('#changeBtn').addEventListener('click',()=>{setupRace(null);show('select');});
 $('#howBtn').addEventListener('click',()=>{initAudio();show('howto');});
 $('#recBtn').addEventListener('click',()=>{recDiff=diff;showRecords();});
 $('#recBack').addEventListener('click',()=>show('title'));
+$('#playerName').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')$('#uploadBtn').click();});
+$('#uploadBtn').addEventListener('click',async e=>{const b=e.currentTarget,name=$('#playerName').value.trim().replace(/\s+/g,' ').slice(0,16);
+  if(!name){$('#cloudMsg').textContent='Escribe un nombre para la tabla.';$('#playerName').focus();return;}
+  lsSet('ck-name',name);b.disabled=true;$('#cloudMsg').textContent='Subiendo…';
+  try{await cloud.submit(+b.dataset.ci,+b.dataset.d,name,+b.dataset.ch,+b.dataset.t);
+    let pos=0;try{const list=await cloud.top(+b.dataset.ci,+b.dataset.d);pos=list.findIndex(r=>r.nombre===name&&Math.abs(r.tiempo-b.dataset.t)<.02)+1;}catch(_){}
+    $('#cloudMsg').textContent=pos?`¡Listo! Vas en el lugar ${pos}º del top 10 mundial.`:'¡Listo! Tu tiempo ya está en la tabla mundial.';cloud.event('record_subido',{pista:COURSES[+b.dataset.ci].id});}
+  catch(err){console.warn(err);b.disabled=false;$('#cloudMsg').textContent='No se pudo subir. Revisa tu conexión e intenta de nuevo.';}});
 $('#howBack').addEventListener('click',()=>show('title'));
 function drawDiff(){document.querySelectorAll('#diffSeg button').forEach(b=>b.setAttribute('aria-checked',String(+b.dataset.d===diff)));}
 document.querySelectorAll('#diffSeg button').forEach(b=>b.addEventListener('click',()=>{diff=+b.dataset.d;drawDiff();try{localStorage.setItem('ck-diff',diff);}catch(e){}}));
@@ -1390,7 +1462,7 @@ $('#mute').addEventListener('click',e=>{muted=!muted;e.currentTarget.textContent
 buildCards();
 
 // =================== Bucle ===================
-loadCourse(0);setupRace(null);
+loadCourse(0);setupRace(null);cloud.init();
 let last=performance.now(),acc=0;const STEP=1/60;
 function frame(now){
   const dt=Math.min(.1,(now-last)/1000);last=now;
