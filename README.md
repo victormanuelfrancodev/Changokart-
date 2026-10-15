@@ -35,6 +35,17 @@ Además hay rampas de turbo amarillas, derrape con mini‑turbo (azul y naranja)
 | Usar objeto | Z, X o Enter | OBJETO |
 | Pausa | P o Esc | ⏸ |
 
+## Multijugador en línea
+
+No necesita cuentas ni Firebase. Usa WebRTC (conexión directa entre navegadores) con el servidor público y gratuito de [PeerJS](https://peerjs.com) solo para que los jugadores se encuentren.
+
+1. Elige **EN LÍNEA**, escoge tu changuito y toca **Crear sala**.
+2. Comparte el código de 4 letras (o el botón **Copiar invitación**).
+3. Tus amigos eligen **EN LÍNEA → Unirme** y escriben el código.
+4. El anfitrión toca **Iniciar carrera**. Hasta 8 jugadores; los lugares vacíos los ocupan changos de la computadora.
+
+El anfitrión simula la carrera (IA, objetos y vueltas) y cada jugador maneja su kart en su propio navegador, así el control se siente inmediato. En algunas redes muy cerradas (ciertas redes de empresa o datos móviles) WebRTC puede no conectar; para esos casos habría que agregar un servidor TURN.
+
 ## Cómo jugar
 
 Abre `index.html` en el navegador. Para publicarlo: en GitHub ve a **Settings → Pages**, elige la rama `main` y la carpeta raíz.
