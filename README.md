@@ -26,13 +26,13 @@ Además hay rampas de turbo amarillas, derrape con mini‑turbo (azul y naranja)
 
 ## Controles
 
-| Acción | Teclado | Táctil |
+| Acción | Teclado | Celular (deslizar) |
 |--------|---------|--------|
 | Acelerar | ↑ / W | automático |
-| Frenar / reversa | ↓ / S | FRENO |
-| Girar | ← → / A D | ◀ ▶ |
-| Derrapar | Shift o Espacio (mantén y gira) | DERRAPE |
-| Usar objeto | Z, X o Enter | OBJETO |
+| Girar | ← → / A D | desliza el dedo a la izquierda o derecha y mantenlo |
+| Frenar / reversa | ↓ / S | desliza hacia abajo |
+| Usar objeto | Z, X o Enter | toca la pantalla o desliza hacia arriba |
+| Derrapar | Shift o Espacio (mantén y gira) | mientras giras, apoya un segundo dedo |
 | Pausa | P o Esc | ⏸ |
 
 ## Multijugador en línea
