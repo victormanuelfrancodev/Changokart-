@@ -33,6 +33,25 @@ Después de elegir changuito eliges la pista. En línea, el anfitrión elige la 
 - 🥥 **Coco**: lánzalo hacia adelante; también rompe cáscaras.
 - 🥭 **Mango**: turbo (a veces te tocan 3).
 - 🐝 **Abejas**: persiguen al que va en primer lugar (solo salen si vas atrás).
+- 🍍 **Piña**: se lanza hacia adelante y rebota en las orillas.
+- ⚡ **Rayo**: encoge a todos los demás unos segundos; si los pisas, dan vueltas.
+- ⭐ **Estrella**: invencible y más rápido; tumbas a quien toques.
+
+## Rampas y obstáculos
+
+Cada pista tiene dos rampas de madera. Si tocas derrape en el aire haces un truco y ganas turbo al caer.
+
+| Pista | Obstáculo |
+|-------|-----------|
+| Selva Plátano | 🐢 Tortugas que cruzan |
+| Playa Coco | 🦀 Cangrejos de lado a lado |
+| Volcán Mandril | ☄️ Rocas de lava que caen (fíjate en la sombra roja) |
+| Nevado Macaco | ⚪ Bolas de nieve que ruedan |
+
+## Récords y vibración
+
+- **Récords**: desde el inicio ves tus 5 mejores tiempos y tu mejor vuelta por pista y dificultad (se guardan en el dispositivo).
+- **Vibración**: en celulares Android vibra al chocar, saltar, agarrar turbo y llegar a la meta. Se apaga con el botón 📳. iPhone no permite vibrar desde el navegador.
 
 Además: música de marimba que acelera en la última vuelta, tres dificultades (Fácil, Normal, Difícil) con récord guardado por dificultad, aviso de “¡vas al revés!”, temblor de pantalla y estrellitas al chocar, confeti en el podio, y rampas de turbo amarillas, derrape con mini‑turbo (azul y naranja), arrancón si aceleras justo antes del "¡YA!", y un tucán que te rescata si te caes al lago.
 
