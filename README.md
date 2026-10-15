@@ -21,8 +21,9 @@ Juego de carreras estilo kart en 3D retro (Mode 7) protagonizado por changuitos,
 - 🍌 **Plátano** (o racimo de 3): déjalo atrás para que los demás se resbalen.
 - 🥥 **Coco**: lánzalo hacia adelante; también rompe cáscaras.
 - 🥭 **Mango**: turbo (a veces te tocan 3).
+- 🐝 **Abejas**: persiguen al que va en primer lugar (solo salen si vas atrás).
 
-Además hay rampas de turbo amarillas, derrape con mini‑turbo (azul y naranja), arrancón si aceleras justo antes del "¡YA!", y un tucán que te rescata si te caes al lago.
+Además: música de marimba que acelera en la última vuelta, tres dificultades (Fácil, Normal, Difícil) con récord guardado por dificultad, aviso de “¡vas al revés!”, temblor de pantalla y estrellitas al chocar, confeti en el podio, y rampas de turbo amarillas, derrape con mini‑turbo (azul y naranja), arrancón si aceleras justo antes del "¡YA!", y un tucán que te rescata si te caes al lago.
 
 ## Controles
 
