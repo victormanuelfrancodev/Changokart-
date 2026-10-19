@@ -121,6 +121,8 @@ body.touch #touch.on{display:block}
 .cloudrow{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--glass);padding:10px 16px;border-radius:14px;max-width:100%}
 .cloudrow label{font-family:var(--font-display);font-size:12px;letter-spacing:.05em;color:var(--banana)}
 #playerName{font-family:var(--font-body);font-weight:700;font-size:17px;width:11em;max-width:60vw;border:3px solid var(--banana);border-radius:12px;background:var(--jungle);color:var(--cream);padding:6px 10px}
+#onName{font-family:var(--font-body);font-weight:700;font-size:17px;width:11em;max-width:60vw;border:3px solid var(--banana);border-radius:12px;background:var(--jungle);color:var(--cream);padding:6px 10px}
+#onName:focus-visible{outline:3px solid var(--hibiscus);outline-offset:2px}
 #playerName:focus-visible{outline:3px solid var(--hibiscus);outline-offset:2px}
 #cloudMsg:empty{display:none}
 .reccard .loading{grid-column:1/-1;margin:0;font-size:14px;opacity:.75}
@@ -307,6 +309,10 @@ body.touch .kb-only{display:none!important}
   <section id="online" class="menu hidden">
     <h2>Carrera en línea</h2>
     <div id="onChoose" class="onbox">
+      <div class="join">
+        <label for="onName">Tu nombre</label>
+        <div class="row"><input id="onName" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Tu nombre"></div>
+      </div>
       <button class="btn" id="hostBtn">Crear sala</button>
       <div class="join">
         <label for="joinCode">Código de sala</label>
@@ -1409,6 +1415,8 @@ const net={course:0,role:null,peer:null,conns:new Map(),host:null,players:[],cod
   broadcast(m){for(const c of this.conns.values())if(c.open)try{c.send(m);}catch(e){}},
   sendHost(m){if(this.host&&this.host.open)try{this.host.send(m);}catch(e){}}};
 function isClient(){return net.role==='client'&&net.racing;}
+function cleanName(v){return String(v||'').replace(/\s+/g,' ').trim().slice(0,16);}
+function myName(){const n=cleanName($('#onName').value);if(n)lsSet('ck-name',n);return n;}
 function onStatus(t){$('#onStatus').textContent=t||'';}
 
 function loadPeer(){
@@ -1425,6 +1433,7 @@ function peerError(e){const t=e&&e.type;
 function openOnline(){
   show('online');
   const inLobby=!!net.role;$('#onChoose').classList.toggle('hidden',inLobby);$('#onLobby').classList.toggle('hidden',!inLobby);
+  if(!inLobby)$('#onName').value=cleanName(lsGet('ck-name'));
   if(!inLobby)onStatus(`Vas a correr con ${CHARS[chosen].name}. Crea una sala o escribe el código de un amigo.`);
   const m=/^#([A-Za-z]{4})$/.exec(location.hash);if(m&&!$('#joinCode').value)$('#joinCode').value=m[1].toUpperCase();
 }
@@ -1433,7 +1442,7 @@ async function hostRoom(){
   onStatus('Creando sala…');$('#hostBtn').disabled=true;
   try{await loadPeer();}catch(e){onStatus(e.message);$('#hostBtn').disabled=false;return;}
   const code=genCode(),peer=new Peer(ROOM_PREFIX+code.toLowerCase(),PEER_OPTS);net.peer=peer;
-  peer.on('open',()=>{net.role='host';net.code=code;net.course=chosenCourse;net.players=[{peer:null,char:chosen}];$('#hostBtn').disabled=false;
+  peer.on('open',()=>{net.role='host';net.code=code;net.course=chosenCourse;net.players=[{peer:null,char:chosen,name:myName()}];$('#hostBtn').disabled=false;
     lobbyUI();onStatus('Comparte el código. Los lugares vacíos los ocupan changos de la computadora.');cloud.event('sala_creada');});
   peer.on('error',e=>{$('#hostBtn').disabled=false;
     if(e.type==='unavailable-id'&&!net.role){peer.destroy();hostRoom();return;}
@@ -1458,7 +1467,7 @@ async function joinRoom(){
   peer.on('open',()=>{
     const conn=peer.connect(ROOM_PREFIX+code.toLowerCase(),{reliable:true,serialization:'json'});net.host=conn;
     const to=setTimeout(()=>{if(!conn.open){onStatus('No encontré esa sala. Revisa el código.');$('#joinBtn').disabled=false;peer.destroy();net.peer=null;}},10000);
-    conn.on('open',()=>{clearTimeout(to);net.role='client';net.code=code;$('#joinBtn').disabled=false;conn.send({t:'hello',char:chosen});
+    conn.on('open',()=>{clearTimeout(to);net.role='client';net.code=code;$('#joinBtn').disabled=false;conn.send({t:'hello',char:chosen,name:myName()});
       lobbyUI();onStatus('¡Conectado! Esperando a que el anfitrión inicie la carrera…');cloud.event('sala_unido');});
     conn.on('data',clientMsg);
     conn.on('close',()=>{if(net.role==='client')leaveOnline('Se perdió la conexión con el anfitrión.');});
@@ -1485,10 +1494,10 @@ function lobbyUI(){
   net.players.forEach((p,i)=>{const li=document.createElement('li');const c=CHARS[p.char];
     const cvs=mkCanvas(64,64);cvs.getContext('2d').drawImage(c.front,0,0);
     const me=net.role==='host'?i===0:p.me;
-    li.innerHTML=`<span><b>J${i+1}</b> ${c.name}<small>${i===0?'Anfitrión':'Invitado'}${me?' · tú':''}</small></span>`;li.prepend(cvs);ul.appendChild(li);});
+    li.innerHTML=`<span><b>${p.name?esc(p.name):'J'+(i+1)}</b> ${c.name}<small>${i===0?'Anfitrión':'Invitado'}${me?' · tú':''}</small></span>`;li.prepend(cvs);ul.appendChild(li);});
 }
 function broadcastLobby(){
-  net.conns.forEach((c,id)=>{if(c.open)c.send({t:'lobby',code:net.code,course:net.course,players:net.players.map(p=>p.char),me:net.players.findIndex(p=>p.peer===id)});});
+  net.conns.forEach((c,id)=>{if(c.open)c.send({t:'lobby',code:net.code,course:net.course,players:net.players.map(p=>p.char),names:net.players.map(p=>p.name||''),me:net.players.findIndex(p=>p.peer===id)});});
   lobbyUI();
 }
 
@@ -1497,6 +1506,7 @@ function hostMsg(id,m){
   if(!m||typeof m!=='object')return;
   if(m.t==='hello'){const ch=clamp(m.char|0,0,CHARS.length-1);let p=net.players.find(p=>p.peer===id);
     if(!p){if(net.players.length>=8){net.send(id,{t:'full'});return;}p={peer:id,char:ch};net.players.push(p);}else p.char=ch;
+    p.name=cleanName(m.name);
     broadcastLobby();if(net.racing&&!karts.some(k=>k.peer===id))net.send(id,{t:'wait'});return;}
   const k=karts.find(k=>k.remote&&k.peer===id);if(!k)return;
   if(m.t==='k'&&Array.isArray(m.s)){const s=m.s;
@@ -1516,7 +1526,7 @@ function dropClient(id){
 function setupOnlineRace(){
   initAudio();loadCourse(net.course);resetWorld();paused=false;
   const humans=net.players.slice(0,8),slots=new Array(8).fill(null);
-  humans.forEach((h,i)=>{slots[7-i]=Object.assign({tag:'J'+(i+1)},h);});
+  humans.forEach((h,i)=>{slots[7-i]=Object.assign({tag:'J'+(i+1)},h,h.name?{tag:h.name}:{});});
   const used=new Set(humans.map(h=>h.char)),pool=CHARS.map((c,i)=>i).filter(i=>!used.has(i)).sort(()=>Math.random()-.5);
   karts=[];
   for(let s=0;s<8;s++){const h=slots[s],ci=h?h.char:(pool.length?pool.pop():Math.floor(Math.random()*CHARS.length));
@@ -1543,7 +1553,7 @@ function snapshot(){
 // ---------- Invitado ----------
 function clientMsg(m){
   if(!m||typeof m!=='object')return;
-  if(m.t==='lobby'){net.code=m.code;net.course=clamp(m.course|0,0,COURSES.length-1);net.players=m.players.map((c,i)=>({char:c,me:i===m.me}));if(!net.racing)lobbyUI();}
+  if(m.t==='lobby'){net.code=m.code;net.course=clamp(m.course|0,0,COURSES.length-1);net.players=m.players.map((c,i)=>({char:c,name:cleanName(m.names&&m.names[i]),me:i===m.me}));if(!net.racing)lobbyUI();}
   else if(m.t==='start')clientStart(m);
   else if(m.t==='s')applySnap(m);
   else if(m.t==='hit'&&player&&net.racing)hit(player,String(m.why||'¡Auch!'));
@@ -1613,6 +1623,7 @@ function cosmetic(k){
 
 $('#hostBtn').addEventListener('click',hostRoom);
 $('#joinBtn').addEventListener('click',joinRoom);
+$('#onName').addEventListener('keydown',e=>e.stopPropagation());
 $('#joinCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')joinRoom();});
 $('#startOnline').addEventListener('click',()=>{if(net.role==='host')setupOnlineRace();});
 $('#onBack').addEventListener('click',()=>{if(net.role)leaveOnline();else{show('title');onStatus('');}});
@@ -1716,7 +1727,7 @@ function startRace(){initAudio();if(AC&&AC.state==='suspended')AC.resume();pause
 function showResults(){phase='results';
   const sorted=[...karts].sort((a,b)=>a.rank-b.rank);
   $('#resTitle').textContent=player.rank===1?'¡Ganaste la copa plátano! 🏆':player.rank<=3?`¡Podio! Quedaste ${player.rank}º`:`Quedaste ${player.rank}º`;
-  $('#resList').innerHTML=sorted.map(k=>`<li class="${k.isPlayer?'me':''}"><b>${k.rank}º</b><span>${k.c.name}${k.tag?' · '+k.tag:''}${k.isPlayer?' (tú)':''}</span><span>${k.finished?fmt(k.finishTime):'—'}</span></li>`).join('');
+  $('#resList').innerHTML=sorted.map(k=>`<li class="${k.isPlayer?'me':''}"><b>${k.rank}º</b><span>${k.c.name}${k.tag?' · '+esc(k.tag):''}${k.isPlayer?' (tú)':''}</span><span>${k.finished?fmt(k.finishTime):'—'}</span></li>`).join('');
   let rec='',laps='';
   if(!net.role&&player.finished){const prev=getTop(courseIdx,diff)[0],pos=addTop(courseIdx,diff,player.finishTime,chosen);
     if(pos===1)rec=prev?`<b>¡Nuevo récord en ${course.name}!</b> ${fmt(player.finishTime)} (antes ${fmt(prev.t)})`:`<b>¡Primer récord en ${course.name}!</b> ${fmt(player.finishTime)}`;
