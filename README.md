@@ -16,6 +16,22 @@ Juego de carreras estilo kart en 3D retro (Mode 7) protagonizado por changuitos,
 | 7 | Aullador | Buena aceleración |
 | 8 | Macaco Japonés | Buen manejo |
 
+## Monedas y Taller 🔧
+
+- **Monedas 🪙**: recógelas en la pista (cada una te hace un poquito más rápido, hasta 10) y gana más según tu lugar al terminar (×1.5 en Normal, ×2 en Difícil). Si te pegan, pierdes 2 de la carrera. Empiezas con 100 de regalo.
+- **Taller**: gasta tus monedas para armar el vehículo de cada changuito:
+
+| Pieza | Opciones |
+|-------|----------|
+| Vehículo | Kart, Moto, Jeep, Tina de baño, Bólido, Platanomóvil, Cohete |
+| Color | 13 colores, Arcoíris y Dorado |
+| Llantas | Normales, Madera, Slick, Neón, Monstruo, Doradas |
+| Accesorio | Antena plátano, Banderín, Alerón, Turbos, Alas |
+| Sombrero | Gorra, Lentes, Sombrero de paja, Hélice, Casco vikingo, Corona |
+| Tamaño | Normal, Mini, Grande |
+
+Muchas piezas cambian las estadísticas (velocidad, aceleración, manejo, peso). Las Alas te hacen planear en los saltos, los Turbos alargan el turbo y el Jeep o las llantas Monstruo no se frenan fuera de la pista. Cada changuito trae un vehículo "de fábrica" gratis (el Gorila un jeep, el Mono Araña una moto, el Macaco un platanomóvil...). Las monedas y piezas se guardan en el dispositivo; en línea, todos ven tu vehículo.
+
 ## Pistas
 
 | Pista | Ambiente |
