@@ -245,6 +245,9 @@ body.touch .kb-only{display:none!important}
 @keyframes cupFloat{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-10px)}}
 @keyframes fadeIn{to{opacity:.9}}
 @media (prefers-reduced-motion:reduce){.pcol,.podCup,#podTitle{animation:none}#podHint{animation:none;opacity:.9}}
+.sponsors{margin:0;font-size:13px;opacity:.85;text-align:center;display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center}
+.sponsors a{color:var(--banana);text-decoration:none;font-weight:800}
+.sponsors a:hover,.sponsors a:focus-visible{text-decoration:underline}
 #gpList{gap:3px!important}
 #results #gpList li{padding:3px 14px;font-size:15px}
 #gpTrophy{font-size:52px;line-height:1;margin:0;animation:pop .6s ease-out}
@@ -300,6 +303,11 @@ body.touch .kb-only{display:none!important}
       <button class="btn alt small" id="garBtn">Taller 🔧</button>
     </div>
     <p class="wallet">Tienes <b><span class="coinCount">0</span> 🪙</b> monedas</p>
+    <p class="sponsors">Nuestras apps:
+      <a href="https://historiasenjapones.com" target="_blank" rel="noopener">Historias en Japonés</a>
+      <a href="https://consoly.app" target="_blank" rel="noopener">Consoly</a>
+      <a href="https://nihongojouzu.jp" target="_blank" rel="noopener">Nihongo Jouzu</a>
+    </p>
     <p class="tip touch-only portrait-tip">Tip: gira tu celular para ver mejor la pista.</p>
   </section>
 
@@ -847,6 +855,42 @@ SPR.cloud=(()=>{const c=mkCanvas(80,52),g=c.getContext('2d');
   ell(g,40,48,26,3,'rgba(80,100,160,0.25)');
   rr(g,12,36,58,10,5,'#c4d4f5');
   [[22,34,14],[38,26,18],[56,33,15],[46,38,13],[30,40,12]].forEach(([x,y,r0])=>{circ(g,x,y,r0,'#e4edff');circ(g,x-2,y-3,r0*.8,'#ffffff');});return c;})();
+// ---------- Anuncios en la pista: pancartas tipo Fórmula 1 y carteles de autopista ----------
+const BRANDS=[
+ {name:'HISTORIAS EN JAPONÉS',sub:'historiasenjapones.com',glyph:'日',c1:'#d62839',c2:'#7a0b13',fg:'#ffffff',acc:'#ffd23f'},
+ {name:'HIRAGANA KING',sub:'¡Aprende los ひらがな!',glyph:'あ',c1:'#8e3bd1',c2:'#3c096c',fg:'#ffffff',acc:'#ffd23f'},
+ {name:'CONSOLY',sub:'consoly.app',glyph:'C',c1:'#0e86d4',c2:'#023e8a',fg:'#ffffff',acc:'#9be3ff'},
+ {name:'NIHONGO JOUZU',sub:'日本語上手 · nihongojouzu.jp',glyph:'上',c1:'#10b58a',c2:'#045c45',fg:'#ffffff',acc:'#fff6a3'}];
+const AD_SIZE={banner:[120,24],bill:[100,72]};
+SPR.ads={banner:[],bill:[]};
+function fitText(g,txt,font,maxW,size){g.font=`${size}px ${font}`;while(size>8&&g.measureText(txt).width>maxW){size-=2;g.font=`${size}px ${font}`;}return size;}
+function buildAds(){
+  const gradV=(g,x,y,h,c1,c2)=>{const gr=g.createLinearGradient(x,y,x,y+h);gr.addColorStop(0,c1);gr.addColorStop(1,c2);return gr;};
+  const fam=getComputedStyle(document.body).getPropertyValue('--font-display')||'Impact,sans-serif',body='"Baloo 2",Arial,sans-serif';
+  BRANDS.forEach((b,i)=>{
+    // pancarta baja, 480x100
+    let cv=mkCanvas(480,100),g=cv.getContext('2d');
+    g.fillStyle=gradV(g,0,0,100,b.c1,b.c2);g.fillRect(0,0,480,100);
+    g.fillStyle='#ffffff';g.fillRect(0,0,480,7);g.fillRect(0,93,480,7);
+    for(let x=0;x<480;x+=40){g.fillStyle=b.acc;g.fillRect(x,0,20,7);g.fillRect(x+20,93,20,7);}
+    circ(g,56,50,34,b.fg);circ(g,56,50,29,b.c2);g.fillStyle=b.acc;g.font=`46px ${fam}`;g.textAlign='center';g.textBaseline='middle';g.fillText(b.glyph,56,54);
+    g.textAlign='left';g.fillStyle=b.fg;let sz=fitText(g,b.name,fam,360,46);g.font=`${sz}px ${fam}`;g.fillText(b.name,108,40);
+    g.fillStyle=b.acc;sz=fitText(g,b.sub,`${body}`,360,30);g.font=`800 ${sz}px ${body}`;g.fillText(b.sub,108,74);
+    SPR.ads.banner[i]=cv;
+    // cartel de autopista con dos postes, 280x200
+    cv=mkCanvas(280,200);g=cv.getContext('2d');
+    g.fillStyle='#4b5563';g.fillRect(52,120,14,80);g.fillRect(214,120,14,80);g.fillStyle='#6b7280';g.fillRect(52,120,5,80);g.fillRect(214,120,5,80);
+    ell(g,59,198,16,3,'rgba(0,0,0,.35)');ell(g,221,198,16,3,'rgba(0,0,0,.35)');
+    rr(g,4,4,272,134,12,'#1f2937');rr(g,10,10,260,122,9,b.c1);
+    g.fillStyle=gradV(g,10,10,122,'rgba(255,255,255,.18)','rgba(0,0,0,.25)');g.fillRect(10,10,260,122);
+    g.strokeStyle=b.fg;g.lineWidth=3;g.strokeRect(16,16,248,110);
+    circ(g,58,58,30,b.fg);circ(g,58,58,25,b.c2);g.fillStyle=b.acc;g.font=`40px ${fam}`;g.textAlign='center';g.textBaseline='middle';g.fillText(b.glyph,58,62);
+    g.textAlign='left';g.fillStyle=b.fg;sz=fitText(g,b.name,fam,172,26);g.font=`${sz}px ${fam}`;g.fillText(b.name,98,48);
+    g.fillStyle=b.acc;sz=fitText(g,b.sub,body,160,18);g.font=`800 ${sz}px ${body}`;g.fillText(b.sub,98,76);
+    g.fillStyle=b.fg;g.font=`800 13px ${body}`;g.textAlign='center';g.fillText('¡Descúbrelo!',140,108);
+    SPR.ads.bill[i]=cv;});
+}
+buildAds();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(buildAds).catch(()=>{});
 const DECOR_SIZE={cactus:[22,46],cloud:[40,26],palm:[36,72],bush:[34,20],banana:[32,38],rock:[15,10],umbrella:[26,34],deadtree:[30,50],lavarock:[16,12],pine:[30,60],sakura:[44,58],torii:[50,46]};
 
 // =================== Pistas ===================
@@ -920,7 +964,7 @@ const trackCache={};
 const trackOf=i=>trackCache[i]||(trackCache[i]=buildTrack(COURSES[i].ctrl));
 
 // Estado de la pista cargada
-let RAMP_IDX=[],GAP_IDX=[],OBST=[],COIN_SPOTS=[],trackCoins=[];
+let ads=[],RAMP_IDX=[],GAP_IDX=[],OBST=[],COIN_SPOTS=[],trackCoins=[];
 let course=null,courseIdx=-1,chosenCourse=0,track=[],N=0,BOX_IDX=[],PAD_IDX=[],lake={x:0,y:0,r:0},texBuf=null,OUT=0,decor=[],skyCv=null,fog=null;
 const MM=140;let mmScale=null,mmBg=null;
 const SKY_W=Math.round(TAU*FOCAL);
@@ -957,6 +1001,13 @@ function loadCourse(i){
   while(decor.length<220&&tries<6000){tries++;const x=60+rand()*(WORLD-120),y=60+rand()*(WORLD-120),d=minDistTrack(x,y);
     if(d<92||d>maxD)continue;if(GAP_IDX.some(g=>{const q=track[(g+4)%N];return(q.x-x)**2+(q.y-y)**2<250*250;}))continue;if(lake.r>40&&Math.hypot(x-lake.x,(y-lake.y)/.8)<lake.r+30)continue;
     decor.push({x,y,t:c.decor[Math.floor(rand()*c.decor.length)]});}
+  // anuncios: solo en algunos tramos, alternando pancartas bajas y carteles altos
+  ads=[];[.04,.16,.29,.44,.57,.7,.83,.93].forEach((f,k)=>{const base=Math.floor(N*f),side=k%2?1:-1,bill=k%3===1,q=track[base%N];
+    const lat=side*(bill?135:96),x=q.x+q.nx*lat,y=q.y+q.ny*lat;
+    if(x<80||y<80||x>WORLD-80||y>WORLD-80)return;if(minDistTrack(x,y)<85)return;
+    if(lake.r>40&&Math.hypot(x-lake.x,(y-lake.y)/.8)<lake.r+40)return;
+    if(GAP_IDX.some(g=>{const w=track[(g+4)%N];return(w.x-x)**2+(w.y-y)**2<240*240;}))return;
+    ads.push({x,y,t:bill?'bill':'banner',b:(k+i)%BRANDS.length,ang:q.ang+(bill?Math.PI/2-.35*side:.9*side)});});
   skyCv=paintSky(c,rand);
   fog=ctx.createLinearGradient(0,HOR,0,HOR+26);fog.addColorStop(0,`rgba(${c.fog},.85)`);fog.addColorStop(1,`rgba(${c.fog},0)`);
   // minimapa
@@ -1495,6 +1546,8 @@ function render(time){
   ctx.fillStyle=fog;ctx.fillRect(0,HOR,W,26);
   const list=[];
   const add=(x,y,fn)=>{const pr=project(x,y);if(pr&&pr.f<1500)list.push({pr,fn});};
+  for(const a of ads){const[w,h]=AD_SIZE[a.t];add(a.x,a.y,pr=>{if(pr.f<14)return;const f=clamp(Math.abs(Math.sin(cam.a-a.ang)),.5,1),sw=w*pr.s*f,sh=h*pr.s;if(sw<1.5)return;
+    ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(pr.x,pr.y,sw*.5,sh*.05,0,0,TAU);ctx.fill();ctx.drawImage(SPR.ads[a.t][a.b],pr.x-sw/2,pr.y-sh,sw,sh);});}
   for(const d of decor){const[w,h]=DECOR_SIZE[d.t];add(d.x,d.y,pr=>{if(pr.f<10)return;const sw=w*pr.s,sh=h*pr.s;if(sw<.6)return;ctx.drawImage(SPR[d.t],pr.x-sw/2,pr.y-sh,sw,sh);});}
   for(const c of trackCoins)if(c.on)add(c.x,c.y,pr=>{const r=3.2*pr.s,sq=Math.max(.18,Math.abs(Math.cos(time/170+c.ph))),y=pr.y-(5+Math.sin(time/250+c.ph))*pr.s;
     ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(pr.x,pr.y,r*.8,r*.25,0,0,TAU);ctx.fill();
