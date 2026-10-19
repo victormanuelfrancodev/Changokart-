@@ -170,7 +170,16 @@ body.touch .kb-only{display:none!important}
 .wallet b{color:var(--banana);font-family:var(--font-display);font-weight:400;letter-spacing:.03em}
 .garTop{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center}
 .garWrap{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px;width:min(980px,100%);align-items:start}
-@media (max-width:760px){.garWrap{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.garWrap{grid-template-columns:minmax(0,1fr)}
+  /* En celular la vista previa se queda fija arriba mientras eliges piezas */
+  #garage .garLeft{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:132px minmax(0,1fr);gap:4px 10px;align-items:center;
+    background:var(--jungle);box-shadow:0 8px 16px rgba(0,0,0,.45);padding:8px 10px}
+  #garage .garChar{grid-column:1/-1;justify-content:center}
+  #garage .garChar .btn{padding:6px 14px}
+  #garage #garPreview{width:132px;height:110px;grid-row:2/4}
+  #garage #garTurn{grid-column:2;justify-self:start;padding:6px 14px;font-size:13px}
+  #garage #garStats{grid-column:2;grid-row:2}
+  #garage #garStats .note{text-align:left}}
 .garLeft{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--glass);border-radius:16px;padding:12px}
 .garChar{display:flex;align-items:center;gap:10px}
 .garChar b{font-family:var(--font-display);font-weight:400;color:var(--banana);min-width:8em;text-align:center}
@@ -178,6 +187,7 @@ body.touch .kb-only{display:none!important}
 #garStats{width:100%;display:flex;flex-direction:column;gap:4px}
 #garStats .stat{grid-template-columns:6.2em 1fr 2.2em;font-size:12px}
 #garStats .bar i.up{background:#06d6a0}#garStats .bar i.down{background:var(--hibiscus)}
+#garMsg .btn{margin-left:6px;vertical-align:middle}
 #garStats .note{font-size:12px;opacity:.85;text-align:center}
 .garRight{display:flex;flex-direction:column;gap:10px;min-width:0}
 #garTabs{justify-content:flex-start}
@@ -1752,8 +1762,11 @@ function drawGarPreview(cfg){const cv=$('#garPreview'),g=cv.getContext('2d');g.i
   const sc=partOf('size',cfg.size).mods?.scale||1,img=getSprites(garCi,cfg)[garView],w=SPR_W*2*sc,h=SPR_H*2*sc;
   g.drawImage(img,96-w/2,148-(SPR_OY+61)*2*sc,w,h);}
 function renderGarage(){
-  const c=CHARS[garCi],cfg=playerCfg(garCi),st=kartStats(c,cfg),base=kartStats(c,DEFAULT_CFG);
-  $('#garName').textContent=c.name;refreshWallet();drawGarPreview(cfg);
+  const c=CHARS[garCi],cfg=playerCfg(garCi),base=kartStats(c,DEFAULT_CFG);
+  // Pieza que se está probando (sin comprar): se ve en la vista previa y en las estadísticas, pero no se guarda
+  const view=Object.assign({},cfg);if(garPending){const[pc,pid]=garPending.split(':');view[pc]=pid;}
+  const st=kartStats(c,view);
+  $('#garName').textContent=c.name;refreshWallet();drawGarPreview(view);
   const row=(l,v,b)=>`<div class="stat"><span>${l}</span><div class="bar"><i class="${v>b+.01?'up':v<b-.01?'down':''}" style="width:${v/7*100}%"></i></div><span>${v.toFixed(1)}</span></div>`;
   const extras=[];if(st.off>.5)extras.push('No se frena en la arena');if(st.glide<1)extras.push('Planea en los saltos');if(st.boost>1)extras.push('Turbos más largos');
   if(st.wt>1.3)extras.push('Pesado: empuja a los demás');if(st.wt<.8)extras.push('Ligero');
@@ -1768,18 +1781,22 @@ function renderGarage(){
       sw.style.background=COLOR_CSS[pt.id]||(pt.id==='orig'?bodyFill(mkCanvas(1,1).getContext('2d'),Object.assign({},cfg,{color:'orig'}),c)[0]:pt.hex);b.appendChild(sw);}
     else{const cv=mkCanvas(SPR_W,SPR_H);cv.getContext('2d').drawImage(getSprites(garCi,Object.assign({},cfg,{[garCat]:pt.id}))[garView],0,0);b.appendChild(cv);}
     const sig=sigCfg(garCi)[garCat]===pt.id&&pt.price>0;
-    b.insertAdjacentHTML('beforeend',`<span class="gn">${pt.name}</span><span class="gd">${pt.desc||''}</span><span class="gp">${on?'✔ Puesto':own?(sig?'De fábrica':'Tuyo'):pend?'¿Comprar? 🪙 '+pt.price:'🪙 '+pt.price}</span>`);
+    b.insertAdjacentHTML('beforeend',`<span class="gn">${pt.name}</span><span class="gd">${pt.desc||''}</span><span class="gp">${on?'✔ Puesto':own?(sig?'De fábrica':'Tuyo'):pend?'Probando · 🪙 '+pt.price:'🪙 '+pt.price}</span>`);
     b.addEventListener('click',()=>garPick(pt,key,own));box.appendChild(b);});
 }
 function garPick(pt,key,own){const cfg=playerCfg(garCi),msg=$('#garMsg');
   if(own){cfg[garCat]=pt.id;savePlayerCfg(garCi,cfg);garPending=null;msg.textContent=`${pt.name} puesto en ${CHARS[garCi].name}.`;beep(880,.06);vib(10);}
-  else if(garPending===key){if(coins<pt.price){msg.textContent=`Te faltan ${pt.price-coins} monedas.`;garPending=null;}
-    else{coins-=pt.price;owned.add(key);saveWallet();cfg[garCat]=pt.id;savePlayerCfg(garCi,cfg);garPending=null;
-      msg.textContent=`¡Compraste ${pt.name}! Te quedan ${coins} monedas.`;[784,988,1318].forEach((f,i)=>setTimeout(()=>beep(f,.1,'square',.05),i*70));vib([15,30,15]);
-      cloud.event('compra',{pieza:key,precio:pt.price});}}
-  else if(coins>=pt.price){garPending=key;msg.textContent=`Toca otra vez para comprar ${pt.name} por ${pt.price} monedas.`;beep(660,.05);}
-  else{garPending=null;msg.textContent=`Te faltan ${pt.price-coins} monedas para ${pt.name}. Gánalas en las carreras: recoge 🪙 y llega en buen lugar.`;beep(220,.12,'square',.05);}
-  renderGarage();const f=document.getElementById('gi-'+garCat+'-'+pt.id);if(f)f.focus();}
+  else if(garPending===key&&coins>=pt.price){garBuy(pt,key);return;}
+  else{garPending=key;beep(660,.05);
+    if(coins>=pt.price){msg.innerHTML=`Así se ve con <b>${pt.name}</b>. <button class="btn small" id="garBuy" type="button">Comprar por 🪙 ${pt.price}</button>`;
+      $('#garBuy').addEventListener('click',()=>garBuy(pt,key));}
+    else msg.textContent=`Así se ve con ${pt.name}. Te faltan ${pt.price-coins} monedas: gánalas en las carreras recogiendo 🪙 y llegando en buen lugar.`;}
+  renderGarage();const f=document.getElementById('gi-'+garCat+'-'+pt.id);if(f)f.focus({preventScroll:true});}
+function garBuy(pt,key){const cfg=playerCfg(garCi),msg=$('#garMsg');
+  if(coins<pt.price){msg.textContent=`Te faltan ${pt.price-coins} monedas.`;return;}
+  coins-=pt.price;owned.add(key);saveWallet();cfg[key.split(':')[0]]=pt.id;savePlayerCfg(garCi,cfg);garPending=null;
+  msg.textContent=`¡Compraste ${pt.name}! Te quedan ${coins} monedas.`;[784,988,1318].forEach((f,i)=>setTimeout(()=>beep(f,.1,'square',.05),i*70));vib([15,30,15]);
+  cloud.event('compra',{pieza:key,precio:pt.price});renderGarage();}
 $('#garBtn').addEventListener('click',()=>{initAudio();openGarage(chosen,'title');});
 $('#selGarBtn').addEventListener('click',()=>openGarage(chosen,'select'));
 $('#garPrev').addEventListener('click',()=>{garCi=(garCi+CHARS.length-1)%CHARS.length;garPending=null;renderGarage();});
