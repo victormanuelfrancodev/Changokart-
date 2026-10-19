@@ -129,6 +129,13 @@ body.touch #touch.on{display:block}
 .btn.small{font-size:15px;padding:9px 20px}
 .onbox{display:flex;flex-direction:column;align-items:center;gap:14px;width:min(420px,100%)}
 .join{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--glass);padding:14px 18px;border-radius:16px;width:100%;box-sizing:border-box}
+.steps{margin:0;font-size:15px;text-align:center;text-wrap:balance}
+.stepn{display:inline-grid;place-items:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--banana);color:var(--bark);margin-right:6px}
+.or{margin:0;opacity:.7;font-size:13px}
+.join small{opacity:.8;font-size:12px;text-align:center}
+#onPaths.hasCode #joinBox{order:-1;outline:3px solid var(--banana)}
+#onPaths.hasCode .or{order:0}
+#onPaths.hasCode #hostBox{order:1}
 .join label{font-family:var(--font-display);font-size:13px;letter-spacing:.06em;color:var(--banana)}
 #joinCode{font-family:var(--font-display);font-size:26px;width:5.2em;text-align:center;text-transform:uppercase;letter-spacing:.15em;
   border:3px solid var(--banana);border-radius:12px;background:var(--jungle);color:var(--cream);padding:6px 8px}
@@ -274,6 +281,11 @@ body.touch .kb-only{display:none!important}
 
   <section id="select" class="menu hidden">
     <h2>Elige tu changuito</h2>
+    <div id="inviteBox" class="join hidden">
+      <label for="invName">🎉 ¡Te invitaron a la sala <b id="invCode"></b>!</label>
+      <small>1. Pon tu nombre · 2. Toca tu chango · ¡y entras solo a la sala!</small>
+      <div class="row"><input id="invName" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Tu nombre"></div>
+    </div>
     <div class="seg" id="diffSeg" role="radiogroup" aria-label="Dificultad">
       <span>Dificultad</span>
       <button type="button" data-d="0" role="radio">Fácil</button>
@@ -309,22 +321,31 @@ body.touch .kb-only{display:none!important}
   <section id="online" class="menu hidden">
     <h2>Carrera en línea</h2>
     <div id="onChoose" class="onbox">
+      <p class="steps">¡Corre con tus amigos! Solo son 3 pasos 🐒</p>
       <div class="join">
-        <label for="onName">Tu nombre</label>
+        <label for="onName"><span class="stepn">1</span> ¿Cómo te llamas, chango?</label>
         <div class="row"><input id="onName" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Tu nombre"></div>
       </div>
-      <button class="btn" id="hostBtn">Crear sala</button>
-      <div class="join">
-        <label for="joinCode">Código de sala</label>
-        <div class="row"><input id="joinCode" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn alt" id="joinBtn">Unirme</button></div>
+      <div id="onPaths" class="onbox">
+        <div class="join" id="hostBox">
+          <label><span class="stepn">2</span> ¿Eres el primero? Abre tu sala</label>
+          <button class="btn" id="hostBtn">Crear sala</button>
+          <small>Te daremos un código de 4 letras para pasar a tus amigos.</small>
+        </div>
+        <p class="or">— o —</p>
+        <div class="join" id="joinBox">
+          <label for="joinCode"><span class="stepn">2</span> ¿Un amigo te pasó un código? Escríbelo</label>
+          <div class="row"><input id="joinCode" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn alt" id="joinBtn">Unirme</button></div>
+        </div>
       </div>
     </div>
     <div id="onLobby" class="onbox hidden">
-      <p class="code">Sala <b id="roomCode">----</b></p>
-      <button class="btn alt small" id="copyBtn">Copiar invitación</button>
+      <p class="code">Código de tu sala <b id="roomCode">----</b></p>
+      <p id="lobbyHelp" class="steps"></p>
+      <button class="btn alt small" id="copyBtn">📋 Copiar invitación para WhatsApp</button>
       <ul id="lobbyList"></ul>
       <div id="lobbyTrack" class="seg"></div>
-      <button class="btn" id="startOnline">Iniciar carrera</button>
+      <button class="btn" id="startOnline">🏁 ¡Arrancar carrera!</button>
     </div>
     <p id="onStatus" class="tag" role="status"></p>
     <button class="btn alt small" id="onBack">Salir</button>
@@ -1434,8 +1455,10 @@ function openOnline(){
   show('online');
   const inLobby=!!net.role;$('#onChoose').classList.toggle('hidden',inLobby);$('#onLobby').classList.toggle('hidden',!inLobby);
   if(!inLobby)$('#onName').value=cleanName(lsGet('ck-name'));
-  if(!inLobby)onStatus(`Vas a correr con ${CHARS[chosen].name}. Crea una sala o escribe el código de un amigo.`);
+  if(!inLobby)onStatus(`Vas a correr con ${CHARS[chosen].name}. Pon tu nombre y elige: crear sala o unirte con un código.`);
   const m=/^#([A-Za-z]{4})$/.exec(location.hash);if(m&&!$('#joinCode').value)$('#joinCode').value=m[1].toUpperCase();
+  $('#onPaths').classList.toggle('hasCode',!!$('#joinCode').value);
+  if(m&&!inLobby)onStatus('¡Te invitaron a una sala! Pon tu nombre y toca Unirme.');
 }
 
 async function hostRoom(){
@@ -1443,7 +1466,7 @@ async function hostRoom(){
   try{await loadPeer();}catch(e){onStatus(e.message);$('#hostBtn').disabled=false;return;}
   const code=genCode(),peer=new Peer(ROOM_PREFIX+code.toLowerCase(),PEER_OPTS);net.peer=peer;
   peer.on('open',()=>{net.role='host';net.code=code;net.course=chosenCourse;net.players=[{peer:null,char:chosen,name:myName()}];$('#hostBtn').disabled=false;
-    lobbyUI();onStatus('Comparte el código. Los lugares vacíos los ocupan changos de la computadora.');cloud.event('sala_creada');});
+    lobbyUI();onStatus('Los lugares vacíos los ocupan changos de la computadora.');cloud.event('sala_creada');});
   peer.on('error',e=>{$('#hostBtn').disabled=false;
     if(e.type==='unavailable-id'&&!net.role){peer.destroy();hostRoom();return;}
     if(!net.role){peer.destroy();net.peer=null;onStatus(peerError(e));}});
@@ -1468,7 +1491,7 @@ async function joinRoom(){
     const conn=peer.connect(ROOM_PREFIX+code.toLowerCase(),{reliable:true,serialization:'json'});net.host=conn;
     const to=setTimeout(()=>{if(!conn.open){onStatus('No encontré esa sala. Revisa el código.');$('#joinBtn').disabled=false;peer.destroy();net.peer=null;}},10000);
     conn.on('open',()=>{clearTimeout(to);net.role='client';net.code=code;$('#joinBtn').disabled=false;conn.send({t:'hello',char:chosen,name:myName()});
-      lobbyUI();onStatus('¡Conectado! Esperando a que el anfitrión inicie la carrera…');cloud.event('sala_unido');});
+      lobbyUI();onStatus('¡Ya estás dentro! 🎉');cloud.event('sala_unido');});
     conn.on('data',clientMsg);
     conn.on('close',()=>{if(net.role==='client')leaveOnline('Se perdió la conexión con el anfitrión.');});
   });
@@ -1486,6 +1509,7 @@ function leaveOnline(msg){
 function lobbyUI(){
   $('#onChoose').classList.add('hidden');$('#onLobby').classList.remove('hidden');
   $('#roomCode').textContent=net.code;$('#startOnline').classList.toggle('hidden',net.role!=='host');
+  $('#lobbyHelp').textContent=net.role==='host'?'Pasa este código a tus amigos (o copia la invitación). Cuando todos aparezcan abajo, ¡arranca la carrera!':'¡Listo! Ahora espera a que el anfitrión arranque la carrera. Calienta los dedos 🍌';
   const lt=$('#lobbyTrack');lt.innerHTML='<span>Pista</span>';
   if(net.role==='host')COURSES.forEach((c,i)=>{const b=document.createElement('button');b.type='button';b.textContent=c.name;b.setAttribute('role','radio');
     b.setAttribute('aria-checked',String(i===net.course));b.addEventListener('click',()=>{net.course=i;chosenCourse=i;broadcastLobby();});lt.appendChild(b);});
@@ -1643,7 +1667,9 @@ function buildCards(){const box=$('#cards');box.innerHTML='';
     const cvs=mkCanvas(64,64);cvs.getContext('2d').drawImage(c.front,0,0);
     const bar=(l,v)=>`<div class="stat"><span>${l}</span><div class="bar"><i style="width:${v*20}%"></i></div></div>`;
     b.innerHTML=`<div class="nm">${c.name}</div><div class="ds">${c.desc}</div>${bar('Velocidad',c.spd)}${bar('Aceleración',c.acc)}${bar('Manejo',c.han)}`;
-    b.prepend(cvs);b.addEventListener('click',()=>{chosen=i;if(mode==='online')openOnline();else showTracks();});box.appendChild(b);});}
+    b.prepend(cvs);b.addEventListener('click',()=>{chosen=i;
+      if(invited){initAudio();const n=cleanName($('#invName').value);if(n)lsSet('ck-name',n);invited=false;$('#inviteBox').classList.add('hidden');$('#diffSeg').classList.remove('hidden');openOnline();joinRoom();}
+      else if(mode==='online')openOnline();else showTracks();});box.appendChild(b);});}
 function bestKey(ci,d){return`ck-best-${COURSES[ci].id}-${d}`;}
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
@@ -1746,9 +1772,9 @@ function showResults(){phase='results';
   $('#leaveBtn').classList.toggle('hidden',!on);
   show('results');}
 function togglePause(){if(net.role||(phase!=='race'&&phase!=='countdown'))return;paused=!paused;show(paused?'pause':null);}
-let mode='solo';
-$('#playBtn').addEventListener('click',()=>{mode='solo';initAudio();show('select');$('#card-'+CHARS[chosen].id).focus();});
-$('#onlineBtn').addEventListener('click',()=>{mode='online';initAudio();show('select');$('#card-'+CHARS[chosen].id).focus();});
+let mode='solo',invited=false;
+$('#playBtn').addEventListener('click',()=>{mode='solo';invited=false;$('#inviteBox').classList.add('hidden');$('#diffSeg').classList.remove('hidden');initAudio();show('select');$('#card-'+CHARS[chosen].id).focus();});
+$('#onlineBtn').addEventListener('click',()=>{mode='online';invited=false;$('#inviteBox').classList.add('hidden');$('#diffSeg').classList.remove('hidden');initAudio();show('select');$('#card-'+CHARS[chosen].id).focus();});
 $('#resumeBtn').addEventListener('click',togglePause);
 $('#pauseBtn').addEventListener('click',togglePause);
 $('#quitBtn').addEventListener('click',()=>{paused=false;setupRace(null);show('title');});
@@ -1776,6 +1802,9 @@ $('#vibBtn').classList.toggle('off',!vibOn);
 $('#vibBtn').addEventListener('click',e=>{vibOn=!vibOn;e.currentTarget.classList.toggle('off',!vibOn);try{localStorage.setItem('ck-vib',vibOn?'1':'0');}catch(_){}if(vibOn)vib(40);});
 $('#mute').addEventListener('click',e=>{muted=!muted;e.currentTarget.textContent=muted?'🔇':'🔊';});
 buildCards();
+{const m=/^#([A-Za-z]{4})$/.exec(location.hash);
+  if(m){invited=true;mode='online';$('#invCode').textContent=m[1].toUpperCase();$('#inviteBox').classList.remove('hidden');$('#diffSeg').classList.add('hidden');
+    $('#invName').value=cleanName(lsGet('ck-name'));$('#invName').addEventListener('keydown',e=>e.stopPropagation());show('select');}}
 
 // =================== Bucle ===================
 loadCourse(0);setupRace(null);cloud.init();
