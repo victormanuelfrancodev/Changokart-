@@ -14,11 +14,11 @@ service cloud.firestore {
       allow read, update, delete: if false;
     }
 
-    // Tabla mundial: una colección por pista y dificultad (records_selva_0 … records_nevado_2).
+    // Tabla mundial: una colección por pista y dificultad (records_selva_0 … records_nubes_2).
     // Cualquiera puede leer y agregar su tiempo; nadie puede borrar ni editar.
     match /{col}/{id} {
-      allow read: if col.matches('records_(selva|playa|volcan|nevado)_[0-2]');
-      allow create: if col.matches('records_(selva|playa|volcan|nevado)_[0-2]')
+      allow read: if col.matches('records_(selva|playa|volcan|nevado|canon|nubes)_[0-2]');
+      allow create: if col.matches('records_(selva|playa|volcan|nevado|canon|nubes)_[0-2]')
         && request.resource.data.keys().hasOnly(['nombre','chango','tiempo','fecha'])
         && request.resource.data.nombre is string
         && request.resource.data.nombre.size() > 0 && request.resource.data.nombre.size() <= 16
